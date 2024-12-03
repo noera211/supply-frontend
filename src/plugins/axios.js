@@ -2,7 +2,7 @@ import axios from 'axios'
 import{useAuthStore} from '@/store/authStore'
 
 const apiClient = axios.create({
-    baseURL: 'http://localhost:3000/api',
+    baseURL: 'https://supply-psi.vercel.app/api',
     headers: {
         'Content-Type': 'application/json'
     },
