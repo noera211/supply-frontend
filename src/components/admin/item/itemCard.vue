@@ -10,10 +10,7 @@
         </button>
         <button
           @click="$emit('delete-item', item.kode)"
-          class="btn btn-danger delete"
-        >
-          Delete
-        </button>
+          class="btn btn-danger delete" > Delete </button>
       </div>
     </div>
   </div>

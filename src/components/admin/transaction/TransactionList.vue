@@ -1,196 +1,158 @@
 <template>
   <div class="transaction-list">
-    <div class="header">
-      <h2>Daftar Transaksi</h2>
-      <button class="add-btn" @click="showAddForm">Tambah Transaksi</button>
-    </div>
-    <div class="transaction-cards">
-            <TransactionCard 
-                v-for="transaction in transactions" 
-                :key="transaction.id" 
-                :transaction="transaction" 
-                @edit-transaction="editTransaction" 
-                @delete-transaction="confirmDeleteTransaction" 
-            />
-        </div>
-        <Modal :visible="showForm" @close="cancelEditForm">
-            <TransactionForm
-                :transaction="selectedTransaction"
-                :isEdit="isEdit"
-                @submit="handleSubmit"
-                @cancel="cancelEditForm"
-            />
-        </Modal>
+      <h2>List Data Transaksi</h2>
+      <div class="table-responsive">
+          <table>
+              <thead>
+                  <tr>
+                      <th>ID</th>
+                      <th>Nama User</th>
+                      <th>Nama Barang</th>
+                      <th>Jumlah Pinjam</th>
+                      <th>Tanggal Pinjam</th>
+                      <th>Tanggal Pengembalian</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  <tr v-for="transaction in transactions" :key="transaction.id">
+                      <td>{{ transaction.id }}</td>
+                      <td>{{ transaction.namaUser }}</td>
+                      <td>{{ transaction.namaBarang }}</td>
+                      <td>{{ transaction.jumlahPinjam }}</td>
+                      <td>{{ transaction.tanggalPinjam }}</td>
+                      <td>{{ transaction.tanggalPengembalian }}</td>
+                      <td>{{ transaction.status }}</td>
+                      <td class="action-buttons">
+                          <button
+                          class="return-btn"
+                          @click= "openReturnForm(transaction)" :disabled= "transaction.status === 'Returned'">
+                          {{ transaction.status === "Returned" ? "Dikembalikan" : "Kembalikan" }}
+                          </button>
+                      </td>
+                  </tr>
+              </tbody>
+          </table>
+      </div>
+      <Modal :visible="showForm" @close="cancelReturnForm">
+          <TransactionForm :transaction="selectedTransaction"
+          @submit="handleReturn"
+          @cancel="cancelReturnForm"
+          />
+      </Modal>
   </div>
 </template>
 
 <script>
-import TransactionCard from "./TransactionCard.vue";
+import { useTransactionStore } from "@/store/transactionStore";
 import Modal from "@/components/Modal.vue";
-import TransactionForm from "./TransactionForm.vue";
+import TransactionForm from "@/components/user/transaction/TransactionForm.vue";
 
 export default {
   components: {
-    TransactionCard,
-    Modal,
-    TransactionForm,
-
+      Modal,
+      TransactionForm,
   },
   data() {
-    return {
-      transactions: [
-        {
-          kode: "2024001",
-          namaKaryawan: "Budiono",
-          namaBarang: "Acer Nitro 15 AN515-58",
-          jumlahPinjam: 1,
-          tanggalPinjam: "2024-8-10",
-          tanggalKembali: "2024-8-17",
-          status: "Borrowed",
-        },
-
-        {
-          kode: "2024002",
-          namaKaryawan: "Sisil",
-          namaBarang: "Lenovo LOQ 15 15IRH8",
-          jumlahPinjam: 1,
-          tanggalPinjam: "2024-8-10",
-          tanggalKembali: "2024-8-17",
-          status: "Borrowed",
-        },
-      ],
-      showForm: false,
-      selectedTransaction: null,
-      isEdit: false,
-    };
+      return {
+          showForm: false,
+          selectedTransaction: null,
+      };
   },
-
+  computed: {
+    transactions() {
+      const transactionStore = useTransactionStore();
+      return transactionStore.transactions;
+    }
+  },
   methods: {
-        showAddForm() {
-            this.selectedTransaction = { id: null, user: "", item: "", amount: 0 };
-            this.isEdit = false;
-            this.showForm = true;
-        },
-        editTransaction(transaction) {
-            this.selectedTransaction = { ...transaction };
-            this.isEdit = true;
-            this.showForm = true;
-        },
-        handleSubmit(transaction) {
-            if (transaction.user && transaction.item && transaction.amount !== null) {
-                if (this.isEdit) {
-                    const index = this.transactions.findIndex(t => t.id === transaction.id);
-                    this.transactions[index] = transaction;
-                } else {
-                    transaction.id = this.transactions.length + 1; // Generate a simple ID
-                    this.transactions.push(transaction);
-                }
-            }
-            this.showForm = false;
-        },
-        cancelEditForm() {
-            this.showForm = false;
-        },
-        confirmDeleteTransaction(transaction) {
-            if (confirm(`Apakah Anda yakin ingin menghapus transaksi untuk ${transaction.user}?`)) {
-                this.deleteTransaction(transaction.id);
-            }
-        },
-        deleteTransaction(id) {
-            this.transactions = this.transactions.filter(transaction => transaction.id !== id);
-        },
-    },
-
+      openReturnForm(transaction) {
+          this.selectedTransaction = { ...transaction };
+          this.showForm = true;
+      },
+      handleReturn(updatedTransaction) {
+      const transactionStore = useTransactionStore();
+      // Update status transaksi di store
+      transactionStore.returnTransaction(updatedTransaction.id);
+      this.cancelReturnForm();
+      },
+     cancelReturnForm() {
+          this.showForm = false;
+          this.selectedTransaction = null;
+      },
+  },
 };
 </script>
 
 <style scoped>
 .transaction-list {
-  padding: 24px;
+  padding: 20px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   margin: 20px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
 h2 {
-  color: #595dd1;
+  margin-bottom: 20px;
+  color: #2980b9;
+  text-align: center;
   font-size: 24px;
 }
-
 .table-responsive {
   width: 100%;
   overflow-x: auto;
 }
-
 table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 20px;
 }
-
-th,td {
+th, td {
   border: 1px solid #ddd;
-  padding: 12px 15px;
-  text-align: center;
-  vertical-align: middle;
+  padding: 12px;
+  text-align: left;
 }
-
 th {
-  background-color: #595dd1;
+  background-color: #2980b9;
   color: white;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
-
 tr:nth-child(even) {
   background-color: #f2f2f2;
 }
-
 tr:hover {
   background-color: #ddd;
 }
-
 button {
-  padding: 6px 12px;
+  padding: 8px 12px;
   border: none;
   cursor: pointer;
   border-radius: 4px;
   font-size: 14px;
 }
-
-.verif-btn {
-  background-color: #4caf50;
+.return-btn {
+  background-color: #754bc5;
   color: white;
 }
-
-.verif-btn:hover {
-  background-color: #45a049;
+.return-btn:hover {
+  background-color: #5a37a0;
 }
-
-.verif-btn[disabled] {
+.return-btn[disabled] {
   background-color: #ccc;
   cursor: not-allowed;
 }
 @media (max-width: 600px) {
   th,td {
-    padding: 8px 10px;
-  }
-
+      padding: 8px 10px;
+  } 
   .action-buttons {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .action-buttons button {
-    margin: 5px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
   }
 }
 </style>
