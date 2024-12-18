@@ -36,14 +36,28 @@ export const useTransactionStore = defineStore ( "transaction", {
       }
     },
 
-    async verifyTransaction(transactionId, status) {
+    async verifyTransaction(transactionId) {
       try {
-        await apiClient.patch(`/transactions/verify/${transactionId}`, { status });
-        const index = this.transactions.findIndex(t => t.id === transactionId);
-        if (index !== -1) this.transactions[index].status = status;
+        const transaction = this.transactions.find(t => t.id === transactionId);
+        if (!transaction) throw new Error("Transaction not found");
+
+        let newStatus = "";
+        if (transaction.status === "Pending") {
+          newStatus = "Borrowed";
+        } else if (transaction.status === "Borrowed") {
+          newStatus = "Returned";
+        }
+
+        if (newStatus) {
+          await apiClient.patch(`/transactions/verify/${transactionId}`, { status: newStatus });
+          const index = this.transactions.findIndex(t => t.id === transactionId);
+          if (index !== -1) {
+            this.transactions[index].status = newStatus;
+          }
+        }
       } catch (error) {
         console.error("Failed to verify transaction:", error);
       }
-    },
+    }
   },
 });

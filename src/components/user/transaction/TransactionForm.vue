@@ -1,115 +1,115 @@
 <template>
-    <div class="transaction-form">
-        <form @submit.prevent="submitForm">
-            <h2>Pengembalian Barang</h2>
-            <div>
-                <label for="kode">Kode Barang:</label>
-                <input type="text" v-model="form.kode" id="kode" :disabled="true" />
-            </div>
-            <div>
-                <label for="nama">Nama Produk:</label>
-                <input type="text" v-model="form.nama" id="nama" :disabled="true" />
-            </div>
-            <div>
-                <label for="tanggal_pinjam">Tanggal Pinjam:</label>
-                <input type="date" v-model="form.tanggal_pinjam" id="tanggal_pinjam" :disabled="true"/>
-            </div>
-            <div>
-                <label for="tanggal_kembali">Tanggal Kembali:</label>
-                <input type="date" v-model="form.tanggal_kembali" id="tanggal_kembali" :disabled="true"/>
-            </div>
-            <div>
-                <label for="jumlah_pinjam">Jumlah Pinjam:</label>
-                <input type="number" v-model="form.jumlah_pinjam" id="jumlah_pinjam" :disabled="true"/>
-            </div>
-            <div class="button-container">
-                <button type="button" @click="cancelForm">Batal</button>
-                <button type="submit">Ajukan</button>
-            </div>
-        </form>
-    </div>
+  <div class="transaction-form">
+    <form @submit.prevent="submitForm" class="p-4 bg-light border rounded shadow-sm">
+      <h2 class="text-center mb-4">Pengembalian Barang</h2>
+      
+      <div class="mb-3">
+        <label for="kode" class="form-label">Kode Barang:</label>
+        <input type="text" v-model="form.kode" id="kode" class="form-control" disabled />
+      </div>
+      
+      <div class="mb-3">
+        <label for="nama" class="form-label">Nama Produk:</label>
+        <input type="text" v-model="form.nama" id="nama" class="form-control" disabled />
+      </div>
+      
+      <div class="mb-3">
+        <label for="tanggal_pinjam" class="form-label">Tanggal Pinjam:</label>
+        <input type="date" v-model="form.tanggal_pinjam" id="tanggal_pinjam" class="form-control" disabled />
+      </div>
+      
+      <div class="mb-3">
+        <label for="tanggal_kembali" class="form-label">Tanggal Kembali:</label>
+        <input type="date" v-model="form.tanggal_kembali" id="tanggal_kembali" class="form-control" />
+      </div>
+      
+      <div class="mb-3">
+        <label for="jumlah_pinjam" class="form-label">Jumlah Pinjam:</label>
+        <input type="number" v-model="form.jumlah_pinjam" id="jumlah_pinjam" class="form-control" disabled />
+      </div>
+      
+      <div class="d-flex justify-content-between">
+        <button type="button" class="btn btn-danger" @click="cancelForm">Batal</button>
+        <button type="submit" class="btn btn-success">Ajukan</button>
+      </div>
+    </form>
+  </div>
 </template>
 
 <script>
+import { useTransactionStore } from '@/store/transactionStore';  // Import the store
+import { ref, watch } from "vue";  // Import ref and watch from vue
+
 export default {
-    props: {
-        transaction: Object,
-    },
-    data() {
-        return {
-            form: {
-                kode: this.transaction ? this.transaction.kode : "",
-                nama: this.transaction ? this.transaction.namaBarang : "",
-                tanggal_pinjam: this.transaction ? this.transaction.tanggalPinjam : "",
-                tanggal_kembali: "",
-                jumlah_pinjam: this.transaction ? this.transaction.jumlahPinjam : 1,
-            },
-        };
-    },
-    methods: {
-        submitForm() {
-            this.$emit("submit", { ...this.form });
-        },
-        cancelForm() {
-            this.$emit("cancel");
-        },
-    },
-    watch: {
-        transaction(newTransaction) {
-            if (newTransaction) {
-                this.form.kode = newTransaction.kode;
-                this.form.nama = newTransaction.namaBarang;
-                this.form.tanggal_pinjam = newTransaction.tanggalPinjam;
-                this.form.jumlah_pinjam = newTransaction.jumlahPinjam;
-            }
-        },
-    },
+  props: {
+    transaction: Object,
+  },
+  setup(props, { emit }) {
+    const store = useTransactionStore();
+    const form = ref({
+      kode: props.transaction ? props.transaction.kode : "",
+      nama: props.transaction ? props.transaction.namaBarang : "",
+      tanggal_pinjam: props.transaction ? props.transaction.tanggalPinjam : "",
+      tanggal_kembali: "",
+      jumlah_pinjam: props.transaction ? props.transaction.jumlahPinjam : 1,
+    });
+
+    // Watch for changes in transaction props and update form data
+    watch(
+      () => props.transaction,
+      (newTransaction) => {
+        if (newTransaction) {
+          form.value.kode = newTransaction.kode;
+          form.value.nama = newTransaction.namaBarang;
+          form.value.tanggal_pinjam = newTransaction.tanggalPinjam;
+          form.value.jumlah_pinjam = newTransaction.jumlahPinjam;
+        }
+      },
+      { immediate: true }
+    );
+
+    const submitForm = async () => {
+      // Validation for Tanggal Kembali
+      if (!form.value.tanggal_kembali) {
+        alert("Tanggal kembali tidak boleh kosong.");
+        return;
+      }
+      if (new Date(form.value.tanggal_kembali) <= new Date(form.value.tanggal_pinjam)) {
+        alert("Tanggal kembali harus lebih besar dari tanggal pinjam.");
+        return;
+      }
+
+      const updatedTransaction = { ...form.value, status: "Returned" };
+      // Call the store method to update transaction status
+      await store.returnTransaction(props.transaction.id, updatedTransaction);
+      // Emit submit event with the updated form
+      emit("submit", updatedTransaction);
+    };
+
+    const cancelForm = () => {
+      emit("cancel");
+    };
+
+    return {
+      form,
+      submitForm,
+      cancelForm,
+    };
+  },
 };
 </script>
 
 <style scoped>
-form {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 400px;
-    margin: auto;
-    background: #f0f0f0;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+.transaction-form {
+  max-width: 600px;
+  margin: 20px auto;
 }
-h2 {
-    text-align: center;
-    margin-bottom: 20px;
+
+.form-control {
+  font-size: 1rem; /* Adjust font size */
 }
-label {
-    margin-top: 10px;
-}
-input {
-    padding: 5px;
-    margin-top: 5px;
-}
-.button-container {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-}
-button {
-    background-color: #4caf50;
-    color: white;
-    border: none;
-    padding: 10px;
-    cursor: pointer;
-    border-radius: 4px;
-}
-button:hover {
-    background-color: #45a049;
-}
-button[type="button"] {
-    background-color: #f44336;
-}
-button[type="button"]:hover {
-    background-color: #e31b0c;
+
+button:disabled {
+  cursor: not-allowed;
 }
 </style>

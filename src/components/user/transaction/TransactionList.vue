@@ -1,171 +1,177 @@
 <template>
-    <div class="transaction-list">
-        <h2>Daftar Transaksi</h2>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nama User</th>
-                        <th>Nama Barang</th>
-                        <th>Jumlah Pinjam</th>
-                        <th>Tanggal Pinjam</th>
-                        <th>Tanggal Pengembalian</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="transaction in transactions" :key="transaction.id">
-                        <td>{{ transaction.id }}</td>
-                        <td>{{ transaction.namaUser }}</td>
-                        <td>{{ transaction.namaBarang }}</td>
-                        <td>{{ transaction.jumlahPinjam }}</td>
-                        <td>{{ transaction.tanggalPinjam }}</td>
-                        <td>{{ transaction.tanggalPengembalian }}</td>
-                        <td>{{ transaction.status }}</td>
-                        <td class="action-buttons">
-                            <button
-                            class="return-btn"
-                            @click= "openReturnForm(transaction)" :disabled= "transaction.status === 'Returned'">
-                            {{ transaction.status === "Returned" ? "Dikembalikan" : "Kembalikan" }}
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <Modal :visible="showForm" @close="cancelReturnForm">
-            <TransactionForm :transaction="selectedTransaction"
-            @submit="handleReturn"
-            @cancel="cancelReturnForm"
-            />
-        </Modal>
+  <div class="transaction-list container my-4">
+    <h2 class="text-center text-primary mb-4">List Data Transaksi</h2>
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th>ID</th>
+            <th>Nama User</th>
+            <th>Nama Barang</th>
+            <th>Jumlah Pinjam</th>
+            <th>Tanggal Pinjam</th>
+            <th>Tanggal Pengembalian</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="transaction in transactions" :key="transaction.id">
+            <td>{{ transaction.id }}</td>
+            <td>{{ transaction.userId }}</td>
+            <td>{{ transaction.item }}</td>
+            <td>{{ transaction.quantityBorrowed}}</td>
+            <td>{{ transaction.borrowedAt}}</td>
+            <td>{{ transaction.returnedAt}}</td>
+            <td>
+              <span :class="{
+                'badge': true,
+                'bg-success': transaction.status === 'Borrowed',
+                'bg-danger': transaction.status === 'Returned',
+                'bg-warning': transaction.status === 'Pending'
+              }">
+                {{ transaction.status }}
+              </span>
+            </td>
+            <td class="d-flex">
+              <button 
+                class="btn btn-primary me-2" 
+                @click="verifyTransaction(transaction.id)" 
+                :disabled="transaction.status === 'Returned'">
+                {{ transaction.status === 'Returned' ? 'Terkembalikan' : 'Verifikasi' }}
+              </button>
+              <button 
+                class="btn btn-warning"
+                @click="openReturnForm(transaction)" 
+                :disabled="transaction.status === 'Returned'">
+                {{ transaction.status === 'Returned' ? 'Dikembalikan' : 'Kembalikan' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+
+    <!-- Modal untuk form pengembalian -->
+    <Modal :visible="showForm" @close="cancelReturnForm">
+      <TransactionForm :transaction="selectedTransaction" 
+        @submit="handleReturn" 
+        @cancel="cancelReturnForm" />
+    </Modal>
+  </div>
 </template>
 
 <script>
+import { useTransactionStore } from "@/store/transactionStore";
 import Modal from "@/components/Modal.vue";
 import TransactionForm from "@/components/user/transaction/TransactionForm.vue";
 
 export default {
-    components: {
-        Modal,
-        TransactionForm,
+  components: {
+    Modal,
+    TransactionForm,
+  },
+  data() {
+    return {
+      showForm: false,
+      selectedTransaction: null,
+    };
+  },
+  computed: {
+    transactions() {
+      const store = useTransactionStore();
+      console.log("Transactions from store:", store.transactions);
+      return store.transactions;
     },
-    data() {
-        return {
-            transactions: [
-                {
-                    id: "2024001",
-                    namaUser: "John Doe",
-                    namaBarang: "Acer Nitro 15 AN515-58",
-                    jumlahPinjam: 1,tanggalPinjam: "2022-10-10",
-                    tanggalPengembalian: "2022-10-17",
-                    status: "Borrowed",
-                },
-                {
-                    id: "2024002",
-                    namaUser: "Jane Smith",
-                    namaBarang: "Lenovo LOQ 15 15IRH8",
-                    jumlahPinjam: 1,
-                    tanggalPinjam: "2022-10-10",
-                    tanggalPengembalian: "2022-10-17",
-                    status: "Borrowed",
-                },
-            ],
-            showForm: false,
-            selectedTransaction: null,
-        };
+  },
+  mounted() {
+  const store = useTransactionStore(); // Assuming useTransactionStore is correctly imported
+  store.fetchTransactions()
+    .then(() => console.log("Transaction fetched successfully"))
+    .catch(error => {
+      console.error("Error Fetching transactions:", error);
+      // Optionally, do something else with the error, like display it to the user
+    });
+},
+  methods: {
+    openReturnForm(transaction) {
+      this.selectedTransaction = { ...transaction };
+      this.showForm = true;
     },
-    methods: {
-        openReturnForm(transaction) {
-            this.selectedTransaction = { ...transaction };
-            this.showForm = true;
-        },
-        handleReturn(updatedTransaction) {
-            const index = this.transactions.findIndex((t) => t.id === updatedTransaction.id);
-            if (index !== -1) {
-                this.transactions[index] = { ...updatedTransaction, status: "Returned" };
-            }
-            this.cancelReturnForm();
-        },
-        cancelReturnForm() {
-            this.showForm = false;
-            this.selectedTransaction = null;
-        },
+    async handleReturn(updatedTransaction) {
+      const store = useTransactionStore();
+      await store.returnTransaction(updatedTransaction.id, updatedTransaction);
+      this.cancelReturnForm();
     },
+    cancelReturnForm() {
+      this.showForm = false;
+      this.selectedTransaction = null;
+    },
+    async verifyTransaction(transactionId) {
+      const store = useTransactionStore();
+      try {
+        await store.verifyTransaction(transactionId);
+      } catch (error) {
+        console.error("Failed to verify transaction:", error);
+      }
+    }
+  },
 };
 </script>
 
 <style scoped>
 .transaction-list {
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    margin: 20px 0;
-    width: 100%;
-    box-sizing: border-box;
+  padding: 20px;
 }
-h2 {
-    margin-bottom: 20px;
-    color: #4b3f6b;
-    text-align: center;
-    font-size: 24px;
-}
+
 .table-responsive {
-    width: 100%;
-    overflow-x: auto;
+  margin-top: 20px;
 }
+
 table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
+  width: 100%;
+  border-collapse: collapse;
 }
-th, td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
+
+td, th {
+  text-align: center;
+  padding: 12px;
+  border: 1px solid #ddd;
+  font-size: 16px;
 }
-th {
-    background-color: #595dd1;
-    color: white;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-}
-tr:nth-child(even) {
-    background-color: #f2f2f2;
-}
-tr:hover {
-    background-color: #ddd;
-}
+
 button {
-    padding: 8px 12px;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 14px;
+  padding: 8px 16px;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
-.return-btn {
-    background-color: #754bc5;
-    color: white;
+
+button:disabled {
+  cursor: not-allowed;
+  background-color: #cccccc;
 }
-.return-btn:hover {
-    background-color: #5a37a0;
+
+/* Styling untuk status */
+.badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 12px;
+  color: rgb(235, 162, 27);
+  font-size: 14px;
 }
-.return-btn[disabled] {
-    background-color: #ccc;
-    cursor: not-allowed;
+
+.bg-success {
+  background-color: #28a745; /* Hijau untuk status 'Borrowed' */
 }
-@media (max-width: 600px) {
-    th,td {
-        padding: 8px 10px;
-    } 
-    .action-buttons {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-    }
+
+.bg-danger {
+  background-color: #dc3545; /* Merah untuk status 'Returned' */
 }
+
+.bg-warning {
+  background-color: #ffc107; /* Kuning untuk status 'Pending' */
+}
+
 </style>
